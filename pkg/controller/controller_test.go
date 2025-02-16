@@ -1,18 +1,20 @@
 package controller
 
 import (
-	"github.com/fntkg/container-orchestrator/pkg/models"
+	"fmt"
 	"testing"
+
+	"github.com/fntkg/container-orchestrator/pkg/models"
 )
 
-// FakeScheduler is a mock implementation of scheduler.Scheduler for testing.
+// FakeScheduler implements the scheduler.Scheduler interface for testing.
 type FakeScheduler struct {
 	scheduledTasks []models.Task
 	nodeToReturn   models.Node
 	errToReturn    error
 }
 
-// Schedule records the task and returns a predefined node or error.
+// Schedule records the task and returns a predefined node (or error).
 func (fs *FakeScheduler) Schedule(task models.Task, nodes []models.Node) (*models.Node, error) {
 	fs.scheduledTasks = append(fs.scheduledTasks, task)
 	if fs.errToReturn != nil {
@@ -21,26 +23,34 @@ func (fs *FakeScheduler) Schedule(task models.Task, nodes []models.Node) (*model
 	return &fs.nodeToReturn, nil
 }
 
-// FakeNodeManager is a fake implementation of a node manager for testing.
+// FakeNodeManager implements the node.NodeManager interface for testing.
 type FakeNodeManager struct {
 	nodes []models.Node
 }
 
-// GetNodes returns the fake list of nodes.
+// Register adds a node to the fake manager.
+func (fnm *FakeNodeManager) Register(n models.Node) error {
+	fnm.nodes = append(fnm.nodes, n)
+	return nil
+}
+
+// GetNodes returns the list of nodes.
 func (fnm *FakeNodeManager) GetNodes() []models.Node {
 	return fnm.nodes
 }
 
-// Register register a fake node
-func Register(n models.Node) error {
-	return nil
+// UpdateHealth updates the health status of a node.
+func (fnm *FakeNodeManager) UpdateHealth(id string, healthy bool) error {
+	for i, n := range fnm.nodes {
+		if n.ID == id {
+			fnm.nodes[i].Healthy = healthy
+			return nil
+		}
+	}
+	return fmt.Errorf("node not found")
 }
 
-// UpdateHealth updates the health of a Node
-func UpdateHealth(nodeID string, healthy bool) error {
-	return nil
-}
-
+// TestControllerManager_Reconcile verifies that the reconcile method schedules each task.
 func TestControllerManager_Reconcile(t *testing.T) {
 	// Create sample tasks.
 	tasks := []models.Task{
@@ -64,10 +74,10 @@ func TestControllerManager_Reconcile(t *testing.T) {
 		nodeToReturn: nodesList[0],
 	}
 
-	// Initialize the ControllerManager with the fake scheduler, tasks, and fake Node Manager.
+	// Create the Controller Manager using the fake dependencies.
 	cm := NewControllerManager(fakeScheduler, tasks, fakeNodeManager)
 
-	// Call the reconcile method directly.
+	// Invoke the reconcile logic.
 	cm.reconcile()
 
 	// Verify that the scheduler was called for each task.
@@ -75,7 +85,7 @@ func TestControllerManager_Reconcile(t *testing.T) {
 		t.Errorf("Expected %d scheduled tasks, got %d", len(tasks), len(fakeScheduler.scheduledTasks))
 	}
 
-	// Check that the recorded tasks match the expected tasks.
+	// Check that the recorded tasks match the expected ones.
 	for i, task := range tasks {
 		if fakeScheduler.scheduledTasks[i].ID != task.ID {
 			t.Errorf("Expected task ID %s, got %s", task.ID, fakeScheduler.scheduledTasks[i].ID)

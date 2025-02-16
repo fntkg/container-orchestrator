@@ -9,7 +9,9 @@ import (
 
 // NodeManager is an interface that defines the behavior of a node manager.
 type NodeManager interface {
+	Register(n models.Node) error
 	GetNodes() []models.Node
+	UpdateHealth(nodeID string, healthy bool) error
 }
 
 // Manager manages the nodes in the cluster.

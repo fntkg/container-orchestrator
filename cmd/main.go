@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/fntkg/container-orchestrator/pkg/api"
-	"github.com/fntkg/container-orchestrator/pkg/datastore"
-	"github.com/fntkg/container-orchestrator/pkg/models"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/fntkg/container-orchestrator/pkg/api"
 	"github.com/fntkg/container-orchestrator/pkg/controller"
+	"github.com/fntkg/container-orchestrator/pkg/datastore"
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"github.com/fntkg/container-orchestrator/pkg/node"
 	"github.com/fntkg/container-orchestrator/pkg/scheduler"
 )
@@ -19,47 +19,50 @@ func main() {
 	// Initialize the in-memory datastore.
 	ds := datastore.NewInMemoryDatastore()
 
-	// Create a Node Manager and register some nodes.
+	// Create the Node Manager using the datastore.
 	nm := node.NewManager(ds)
+
+	// Register some nodes via the Node Manager.
 	if err := nm.Register(models.Node{ID: "node-1", Healthy: true}); err != nil {
-		log.Fatalf("Error registering node-1: %v", err)
+		log.Fatalf("Failed to register node-1: %v", err)
 	}
 	if err := nm.Register(models.Node{ID: "node-2", Healthy: true}); err != nil {
-		log.Fatalf("Error registering node-2: %v", err)
+		log.Fatalf("Failed to register node-2: %v", err)
 	}
 
-	// Create some sample tasks.
+	// Save some sample tasks in the datastore.
 	tasks := []models.Task{
 		{ID: "task-1"},
 		{ID: "task-2"},
 	}
+	for _, task := range tasks {
+		if err := ds.SaveTask(models.Task{ID: task.ID}); err != nil {
+			log.Fatalf("Failed to save task %s: %v", task.ID, err)
+		}
+	}
 
-	// Initialize the DefaultScheduler.
+	// Initialize the scheduler and Controller Manager.
 	sched := scheduler.NewDefaultScheduler()
-
-	// Create a new Controller Manager with the Node Manager.
 	ctrlManager := controller.NewControllerManager(sched, tasks, nm)
-
-	// Run the Controller Manager.
 	stopCh := make(chan struct{})
 	go ctrlManager.Run(stopCh)
 
-	// Initialize the API router.
-	router := api.NewRouter()
-	// Start the API server in its own goroutine.
+	// Create the API router with the Node Manager and Datastore.
+	apiInstance := api.NewAPI(nm, ds)
+
+	// Start the HTTP server.
 	apiPort := ":8080"
 	go func() {
 		log.Printf("Starting API server on port %s", apiPort)
-		if err := http.ListenAndServe(apiPort, router); err != nil {
+		if err := http.ListenAndServe(apiPort, apiInstance.Router()); err != nil {
 			log.Fatalf("API server failed: %v", err)
 		}
 	}()
 
-	// Wait for an OS signal (SIGINT, SIGTERM) to gracefully shut down.
+	// Wait for OS signals to gracefully shut down.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
-
-	close(stopCh)
 	log.Println("Shutting down gracefully...")
+	close(stopCh)
 }
