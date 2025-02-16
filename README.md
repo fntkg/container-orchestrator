@@ -137,4 +137,5 @@ graph TD
     A --> E[pkg/node]
     A --> F[pkg/datastore]
     A --> G[pkg/taskmanager]
+    A --> H[pkg/models]
 ```
