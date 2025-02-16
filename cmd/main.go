@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/fntkg/container-orchestrator/pkg/api"
+	"github.com/fntkg/container-orchestrator/pkg/datastore"
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"log"
 	"net/http"
 	"os"
@@ -14,17 +16,20 @@ import (
 )
 
 func main() {
+	// Initialize the in-memory datastore.
+	ds := datastore.NewInMemoryDatastore()
+
 	// Create a Node Manager and register some nodes.
-	nm := node.NewManager()
-	if err := nm.Register(node.Node{ID: "node-1", Healthy: true}); err != nil {
+	nm := node.NewManager(ds)
+	if err := nm.Register(models.Node{ID: "node-1", Healthy: true}); err != nil {
 		log.Fatalf("Error registering node-1: %v", err)
 	}
-	if err := nm.Register(node.Node{ID: "node-2", Healthy: true}); err != nil {
+	if err := nm.Register(models.Node{ID: "node-2", Healthy: true}); err != nil {
 		log.Fatalf("Error registering node-2: %v", err)
 	}
 
 	// Create some sample tasks.
-	tasks := []scheduler.Task{
+	tasks := []models.Task{
 		{ID: "task-1"},
 		{ID: "task-2"},
 	}

@@ -2,64 +2,66 @@ package node
 
 import (
 	"errors"
-	"sync"
-)
+	"github.com/fntkg/container-orchestrator/pkg/models"
 
-// Node represents a cluster node with an ID and a health status.
-type Node struct {
-	ID      string
-	Healthy bool
-}
+	"github.com/fntkg/container-orchestrator/pkg/datastore"
+)
 
 // NodeManager is an interface that defines the behavior of a node manager.
 type NodeManager interface {
-	GetNodes() []Node
+	GetNodes() []models.Node
 }
 
 // Manager manages the nodes in the cluster.
 type Manager struct {
-	nodes map[string]Node
-	mu    sync.RWMutex
+	ds datastore.Datastore
 }
 
-// NewManager initializes and returns a new Node Manager.
-func NewManager() *Manager {
+// NewManager // NewManager creates a new instance of Manager with the given datastore.
+func NewManager(ds datastore.Datastore) *Manager {
 	return &Manager{
-		nodes: make(map[string]Node),
+		ds: ds,
 	}
 }
 
 // Register adds a new node to the manager.
-func (m *Manager) Register(n Node) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if _, exists := m.nodes[n.ID]; exists {
-		return errors.New("node already registered")
-	}
-	m.nodes[n.ID] = n
-	return nil
+func (m *Manager) Register(n models.Node) error {
+	return m.ds.SaveNode(n)
 }
 
 // GetNodes returns a slice of all registered nodes.
-func (m *Manager) GetNodes() []Node {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	var result []Node
-	for _, node := range m.nodes {
-		result = append(result, node)
+func (m *Manager) GetNodes() []models.Node {
+	nodes, err := m.ds.GetNodes()
+	if err != nil {
+		// Optionally, you can log the error here
+		return []models.Node{}
 	}
-	return result
+	return nodes
 }
 
 // UpdateHealth updates the health status of a node.
 func (m *Manager) UpdateHealth(nodeID string, healthy bool) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	n, exists := m.nodes[nodeID]
-	if !exists {
+	// Retrieve all nodes from the datastore.
+	nodes, err := m.ds.GetNodes()
+	if err != nil {
+		return err
+	}
+
+	// Find the node with the given nodeID.
+	var found bool
+	var updatedNode models.Node
+	for _, n := range nodes {
+		if n.ID == nodeID {
+			updatedNode = n
+			updatedNode.Healthy = healthy
+			found = true
+			break
+		}
+	}
+	if !found {
 		return errors.New("node not found")
 	}
-	n.Healthy = healthy
-	m.nodes[nodeID] = n
-	return nil
+
+	// Save the updated node back to the datastore.
+	return m.ds.SaveNode(updatedNode)
 }

@@ -2,20 +2,13 @@ package scheduler
 
 import (
 	"fmt"
-
-	"github.com/fntkg/container-orchestrator/pkg/node"
+	"github.com/fntkg/container-orchestrator/pkg/models"
 )
-
-// Task represents a task or container that needs to be assigned to a node.
-type Task struct {
-	ID string
-	// Here you can add other fields, such as required resources.
-}
 
 // Scheduler defines the interface that must implement any scheduling strategy.
 type Scheduler interface {
 	// Schedule assigns a task to one of the available nodes and returns the selected node.
-	Schedule(task Task, nodes []node.Node) (*node.Node, error)
+	Schedule(task models.Task, nodes []models.Node) (*models.Node, error)
 }
 
 // DefaultScheduler is a simple implementation of the Scheduler.
@@ -30,7 +23,7 @@ func NewDefaultScheduler() *DefaultScheduler {
 
 // Schedule assigns the task to the first available node.
 // This is a very basic strategy that can be improved in future iterations.
-func (s *DefaultScheduler) Schedule(task Task, nodes []node.Node) (*node.Node, error) {
+func (s *DefaultScheduler) Schedule(task models.Task, nodes []models.Node) (*models.Node, error) {
 	if len(nodes) == 0 {
 		return nil, fmt.Errorf("no nodes available to schedule the task %s", task.ID)
 	}

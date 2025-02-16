@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"log"
 	"time"
 
@@ -11,12 +12,12 @@ import (
 // Manager monitors and reconciles the state of the cluster.
 type Manager struct {
 	scheduler   scheduler.Scheduler
-	tasks       []scheduler.Task
+	tasks       []models.Task
 	nodeManager node.NodeManager
 }
 
 // NewControllerManager creates a new instance of Manager.
-func NewControllerManager(scheduler scheduler.Scheduler, tasks []scheduler.Task, nm node.NodeManager) *Manager {
+func NewControllerManager(scheduler scheduler.Scheduler, tasks []models.Task, nm node.NodeManager) *Manager {
 	return &Manager{
 		scheduler:   scheduler,
 		tasks:       tasks,
@@ -49,7 +50,7 @@ func (cm *Manager) reconcile() {
 	nodes := cm.nodeManager.GetNodes()
 	// filter out unhealthy nodes.
 	//healthyNodes := make([]node.Node, 0)
-	var healthyNodes []node.Node
+	var healthyNodes []models.Node
 	for _, n := range nodes {
 		if n.Healthy {
 			healthyNodes = append(healthyNodes, n)

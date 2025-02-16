@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/fntkg/container-orchestrator/pkg/node"
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"github.com/fntkg/container-orchestrator/pkg/scheduler"
 	"github.com/gorilla/mux" // You can install this package with: go get -u github.com/gorilla/mux
 	"log"
@@ -32,7 +32,7 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // ScheduleHandler receives a task, calls the scheduler, and returns the assigned node.
 func ScheduleHandler(w http.ResponseWriter, r *http.Request) {
-	var task scheduler.Task
+	var task models.Task
 	// Decode the incoming JSON payload into a Task struct.
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		http.Error(w, "Invalid task payload", http.StatusBadRequest)
@@ -41,7 +41,7 @@ func ScheduleHandler(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Create real nodes
 	// Simulate available nodes.
-	nodes := []node.Node{
+	nodes := []models.Node{
 		{ID: "node-1"},
 		{ID: "node-2"},
 	}

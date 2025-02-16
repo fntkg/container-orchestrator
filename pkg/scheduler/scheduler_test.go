@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"github.com/fntkg/container-orchestrator/pkg/node"
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"testing"
 )
 
@@ -10,10 +10,10 @@ func TestDefaultScheduler_Schedule(t *testing.T) {
 	scheduler := NewDefaultScheduler()
 
 	// Define a sample task
-	task := Task{ID: "task-1"}
+	task := models.Task{ID: "task-1"}
 
 	// Defines a list of available nodes
-	nodes := []node.Node{
+	nodes := []models.Node{
 		{ID: "node-1", Healthy: true},
 		{ID: "node-2", Healthy: true},
 	}
@@ -32,8 +32,8 @@ func TestDefaultScheduler_Schedule(t *testing.T) {
 
 func TestDefaultScheduler_NoNodes(t *testing.T) {
 	scheduler := NewDefaultScheduler()
-	task := Task{ID: "task-2"}
-	var nodes []node.Node // No nodes available
+	task := models.Task{ID: "task-2"}
+	var nodes []models.Node // No nodes available
 
 	_, err := scheduler.Schedule(task, nodes)
 	if err == nil {
