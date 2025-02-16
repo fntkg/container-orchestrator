@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/fntkg/container-orchestrator/pkg/taskmanager"
 	"net/http"
 
-	"github.com/fntkg/container-orchestrator/pkg/datastore"
 	"github.com/fntkg/container-orchestrator/pkg/models"
 	"github.com/fntkg/container-orchestrator/pkg/node"
 	"github.com/gorilla/mux"
@@ -14,16 +14,16 @@ import (
 type API struct {
 	router      *mux.Router
 	nodeManager node.NodeManager // NodeManager interface
-	ds          datastore.Datastore
+	taskManager taskmanager.TaskManager
 }
 
 // NewAPI creates a new API instance with the provided NodeManager and Datastore.
-func NewAPI(nm node.NodeManager, ds datastore.Datastore) *API {
+func NewAPI(nm node.NodeManager, tm taskmanager.TaskManager) *API {
 	r := mux.NewRouter().StrictSlash(true)
 	api := &API{
 		router:      r,
 		nodeManager: nm,
-		ds:          ds,
+		taskManager: tm,
 	}
 
 	// Health endpoint
@@ -114,7 +114,7 @@ func (a *API) updateNodeHandler(w http.ResponseWriter, r *http.Request) {
 
 // getTasksHandler returns the list of registered tasks.
 func (a *API) getTasksHandler(w http.ResponseWriter, r *http.Request) {
-	tasks, err := a.ds.GetTasks()
+	tasks, err := a.taskManager.GetTasks()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -134,7 +134,7 @@ func (a *API) registerTaskHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	if err := a.ds.SaveTask(t); err != nil {
+	if err := a.taskManager.CreateTask(t); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

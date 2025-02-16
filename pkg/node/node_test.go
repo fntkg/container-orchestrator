@@ -8,7 +8,7 @@ import (
 	"github.com/fntkg/container-orchestrator/pkg/models"
 )
 
-// FakeDatastore is a fake implementation of datastore.Datastore for testing Node Manager.
+// FakeDatastore is a fake implementation of datastore.Datastore for testing Node DefaultNodeManager.
 type FakeDatastore struct {
 	nodes map[string]models.Node
 	// Stubs for tasks to satisfy the interface.

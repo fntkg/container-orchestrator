@@ -14,25 +14,25 @@ type NodeManager interface {
 	UpdateHealth(nodeID string, healthy bool) error
 }
 
-// Manager manages the nodes in the cluster.
-type Manager struct {
+// DefaultNodeManager manages the nodes in the cluster.
+type DefaultNodeManager struct {
 	ds datastore.Datastore
 }
 
-// NewManager // NewManager creates a new instance of Manager with the given datastore.
-func NewManager(ds datastore.Datastore) *Manager {
-	return &Manager{
+// NewManager // NewManager creates a new instance of DefaultNodeManager with the given datastore.
+func NewManager(ds datastore.Datastore) *DefaultNodeManager {
+	return &DefaultNodeManager{
 		ds: ds,
 	}
 }
 
 // Register adds a new node to the manager.
-func (m *Manager) Register(n models.Node) error {
+func (m *DefaultNodeManager) Register(n models.Node) error {
 	return m.ds.SaveNode(n)
 }
 
 // GetNodes returns a slice of all registered nodes.
-func (m *Manager) GetNodes() []models.Node {
+func (m *DefaultNodeManager) GetNodes() []models.Node {
 	nodes, err := m.ds.GetNodes()
 	if err != nil {
 		// Optionally, you can log the error here
@@ -42,7 +42,7 @@ func (m *Manager) GetNodes() []models.Node {
 }
 
 // UpdateHealth updates the health status of a node.
-func (m *Manager) UpdateHealth(nodeID string, healthy bool) error {
+func (m *DefaultNodeManager) UpdateHealth(nodeID string, healthy bool) error {
 	// Retrieve all nodes from the datastore.
 	nodes, err := m.ds.GetNodes()
 	if err != nil {
