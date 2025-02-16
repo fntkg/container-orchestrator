@@ -9,5 +9,6 @@ type Node struct {
 
 // Task represents a task that needs scheduling.
 type Task struct {
-	ID string
+	ID     string
+	Status string
 }

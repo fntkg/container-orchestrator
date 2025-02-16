@@ -1,33 +1,34 @@
+// File: pkg/controller/controller.go
 package controller
 
 import (
-	"github.com/fntkg/container-orchestrator/pkg/models"
 	"log"
 	"time"
 
+	"github.com/fntkg/container-orchestrator/pkg/models"
 	"github.com/fntkg/container-orchestrator/pkg/node"
 	"github.com/fntkg/container-orchestrator/pkg/scheduler"
+	"github.com/fntkg/container-orchestrator/pkg/taskmanager"
 )
 
-// Manager monitors and reconciles the state of the cluster.
-type Manager struct {
+// ControllerManager monitors and reconciles the cluster's state.
+type ControllerManager struct {
 	scheduler   scheduler.Scheduler
-	tasks       []models.Task
+	taskManager taskmanager.TaskManagement
 	nodeManager node.NodeManager
 }
 
-// NewControllerManager creates a new instance of Manager.
-func NewControllerManager(scheduler scheduler.Scheduler, tasks []models.Task, nm node.NodeManager) *Manager {
-	return &Manager{
-		scheduler:   scheduler,
-		tasks:       tasks,
+// NewControllerManager creates a new ControllerManager instance.
+func NewControllerManager(sched scheduler.Scheduler, tm taskmanager.TaskManagement, nm node.NodeManager) *ControllerManager {
+	return &ControllerManager{
+		scheduler:   sched,
+		taskManager: tm,
 		nodeManager: nm,
 	}
 }
 
 // Run starts the reconciliation loop.
-// It listens for a stop signal via the stopCh channel.
-func (cm *Manager) Run(stopCh <-chan struct{}) {
+func (cm *ControllerManager) Run(stopCh <-chan struct{}) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -43,26 +44,33 @@ func (cm *Manager) Run(stopCh <-chan struct{}) {
 }
 
 // reconcile performs a single reconciliation iteration.
-func (cm *Manager) reconcile() {
+func (cm *ControllerManager) reconcile() {
 	log.Println("Controller Manager: Reconciling state...")
 
-	// Retrieve the list of nodes from the Node Manager.
+	// Retrieve tasks from Task Manager.
+	tasks, err := cm.taskManager.GetTasks()
+	if err != nil {
+		log.Printf("Error retrieving tasks: %v", err)
+		return
+	}
+
+	// Retrieve nodes from Node Manager.
 	nodes := cm.nodeManager.GetNodes()
-	// filter out unhealthy nodes.
-	//healthyNodes := make([]node.Node, 0)
-	var healthyNodes []models.Node
+	// Filter only healthy nodes.
+	healthyNodes := make([]models.Node, 0)
 	for _, n := range nodes {
 		if n.Healthy {
 			healthyNodes = append(healthyNodes, n)
 		}
 	}
 
-	for _, task := range cm.tasks {
+	for _, task := range tasks {
 		assignedNode, err := cm.scheduler.Schedule(task, healthyNodes)
 		if err != nil {
 			log.Printf("Error scheduling task %s: %v", task.ID, err)
 		} else {
 			log.Printf("Task %s assigned to Node %s", task.ID, assignedNode.ID)
+			// Optionally, update task status via Task Manager.
 		}
 	}
 }

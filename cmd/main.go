@@ -13,6 +13,7 @@ import (
 	"github.com/fntkg/container-orchestrator/pkg/models"
 	"github.com/fntkg/container-orchestrator/pkg/node"
 	"github.com/fntkg/container-orchestrator/pkg/scheduler"
+	"github.com/fntkg/container-orchestrator/pkg/taskmanager"
 )
 
 func main() {
@@ -21,8 +22,6 @@ func main() {
 
 	// Create the Node Manager using the datastore.
 	nm := node.NewManager(ds)
-
-	// Register some nodes via the Node Manager.
 	if err := nm.Register(models.Node{ID: "node-1", Healthy: true}); err != nil {
 		log.Fatalf("Failed to register node-1: %v", err)
 	}
@@ -30,27 +29,26 @@ func main() {
 		log.Fatalf("Failed to register node-2: %v", err)
 	}
 
-	// Save some sample tasks in the datastore.
-	tasks := []models.Task{
-		{ID: "task-1"},
-		{ID: "task-2"},
+	// Create the Task Manager using the datastore.
+	tm := taskmanager.NewTaskManager(ds)
+	// Optionally, create some initial tasks.
+	if err := tm.CreateTask(models.Task{ID: "task-1", Status: "pending"}); err != nil {
+		log.Fatalf("Failed to create task-1: %v", err)
 	}
-	for _, task := range tasks {
-		if err := ds.SaveTask(models.Task{ID: task.ID}); err != nil {
-			log.Fatalf("Failed to save task %s: %v", task.ID, err)
-		}
+	if err := tm.CreateTask(models.Task{ID: "task-2", Status: "pending"}); err != nil {
+		log.Fatalf("Failed to create task-2: %v", err)
 	}
 
-	// Initialize the scheduler and Controller Manager.
+	// Initialize the scheduler.
 	sched := scheduler.NewDefaultScheduler()
-	ctrlManager := controller.NewControllerManager(sched, tasks, nm)
+
+	// Create the Controller Manager with the scheduler, Task Manager, and Node Manager.
+	ctrlManager := controller.NewControllerManager(sched, tm, nm)
 	stopCh := make(chan struct{})
 	go ctrlManager.Run(stopCh)
 
-	// Create the API router with the Node Manager and Datastore.
+	// Create the API router with the Node Manager and datastore.
 	apiInstance := api.NewAPI(nm, ds)
-
-	// Start the HTTP server.
 	apiPort := ":8080"
 	go func() {
 		log.Printf("Starting API server on port %s", apiPort)
@@ -59,7 +57,7 @@ func main() {
 		}
 	}()
 
-	// Wait for OS signals to gracefully shut down.
+	// Listen for OS signals to gracefully shut down.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
