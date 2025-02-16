@@ -1,42 +1,56 @@
-package scheduler
+// File: pkg/scheduler/scheduler_test.go
+package scheduler_test
 
 import (
-	"github.com/fntkg/container-orchestrator/pkg/models"
 	"testing"
+
+	"github.com/fntkg/container-orchestrator/pkg/models"
+	"github.com/fntkg/container-orchestrator/pkg/scheduler"
 )
 
-func TestDefaultScheduler_Schedule(t *testing.T) {
-	// Creates an instance of the scheduler
-	scheduler := NewDefaultScheduler()
+func TestDefaultScheduler_ScheduleSuccess(t *testing.T) {
+	// Create a new DefaultScheduler instance.
+	sched := scheduler.NewDefaultScheduler()
 
-	// Define a sample task
+	// Define a sample task.
 	task := models.Task{ID: "task-1"}
 
-	// Defines a list of available nodes
+	// Define a slice of available nodes.
 	nodes := []models.Node{
 		{ID: "node-1", Healthy: true},
 		{ID: "node-2", Healthy: true},
 	}
 
-	// Try to assign the task
-	selectedNode, err := scheduler.Schedule(task, nodes)
+	// Call Schedule.
+	assignedNode, err := sched.Schedule(task, nodes)
 	if err != nil {
-		t.Fatalf("Error when scheduling the task: %v", err)
+		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Verify that the first node has been selected.
-	if selectedNode.ID != "node-1" {
-		t.Errorf("The task was expected to be assigned to node-1, but was assigned to %s", selectedNode.ID)
+	// Verify that the first node is returned.
+	if assignedNode.ID != "node-1" {
+		t.Errorf("expected assigned node ID 'node-1', got '%s'", assignedNode.ID)
 	}
 }
 
 func TestDefaultScheduler_NoNodes(t *testing.T) {
-	scheduler := NewDefaultScheduler()
-	task := models.Task{ID: "task-2"}
-	var nodes []models.Node // No nodes available
+	// Create a new DefaultScheduler instance.
+	sched := scheduler.NewDefaultScheduler()
 
-	_, err := scheduler.Schedule(task, nodes)
+	// Define a sample task.
+	task := models.Task{ID: "task-1"}
+
+	// Define an empty slice of nodes.
+	nodes := []models.Node{}
+
+	// Call Schedule expecting an error.
+	assignedNode, err := sched.Schedule(task, nodes)
 	if err == nil {
-		t.Fatal("An error was expected as no nodes were available, but none were obtained.")
+		t.Fatalf("expected an error when no nodes are available, got nil")
+	}
+
+	// Ensure that no node is returned.
+	if assignedNode != nil {
+		t.Errorf("expected nil assigned node when no nodes are available, got %+v", assignedNode)
 	}
 }
