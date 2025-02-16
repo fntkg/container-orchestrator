@@ -1,6 +1,8 @@
 # container-orchestrator
 A basic container orchestrator system built in Go that manages nodes and tasks. This application simulates some of the core functionalities found in systems like Kubernetes, including scheduling tasks to nodes, managing the state of nodes and tasks, and exposing a RESTful API for external interaction.
 
+> Some tests need to be fixed!
+
 ## Functionalities
 
 - **API Server**:
