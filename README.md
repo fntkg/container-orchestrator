@@ -57,21 +57,37 @@ classDiagram
     class InMemoryDatastore {
       -nodes: map[string]Node
       -tasks: map[string]Task
+      -mu: RWMutex
       +SaveNode(n: Node) error
       +GetNodes() []Node
       +SaveTask(t: Task) error
       +GetTasks() []Task
     }
     class NodeManager {
-      +Register(n: Node) error
-      +GetNodes() []Node
-      +UpdateHealth(id, healthy) error
+        <<interface>>
+        +Register(n: Node) error
+        +GetNodes() []Node
+        +UpdateHealth(id, healthy) error
+    }
+    class DefaultNodeManager {
+        - ds: Datastore
+        +Register(n: Node) error
+        +GetNodes() []Node
+        +UpdateHealth(id, healthy) error
     }
     class TaskManager {
-      +CreateTask(t: Task) error
-      +GetTask(id) *Task
-      +UpdateTask(t: Task) error
-      +GetTasks() []Task
+        <<interface>>
+        +CreateTask(t: Task) error
+        +GetTask(id) *Task
+        +UpdateTask(t: Task) error
+        +GetTasks() []Task
+    }
+    class DefaultTaskManager {
+        - ds: Datastore
+        +CreateTask(t: Task) error
+        +GetTask(id) *Task
+        +UpdateTask(t: Task) error
+        +GetTasks() []Task
     }
     class Scheduler {
       <<interface>>
@@ -83,21 +99,32 @@ classDiagram
     class ControllerManager {
       -scheduler: Scheduler
       -taskManager: TaskManager
-      -nodeManager: NodeManager
+      -DefaultNodeManager: NodeManager
       +Run(stopCh)
       -reconcile()
     }
     class API {
-      +Router() *mux.Router
+        -router: Router
+        -nodeManager: NodeManager
+        -taskManager: TaskManager
+        +Router() *mux.Router
+        +healthHandler()
+        +registerNodeHandler()
+        +updateNodeHandler()
+        +getTasksHandler()
+        +registerTaskHandler()
     }
     
     Datastore <|.. InMemoryDatastore
     Scheduler <|.. DefaultScheduler
-    NodeManager --> Datastore : uses
-    TaskManager --> Datastore : uses
+    TaskManager <|.. DefaultTaskManager
+    NodeManager <|.. DefaultNodeManager
+    DefaultNodeManager --> Datastore : uses
+    DefaultTaskManager --> Datastore : uses
     ControllerManager --> Scheduler : uses
     ControllerManager --> NodeManager : uses
     ControllerManager --> TaskManager : uses
+    API --> NodeManager : uses
 ```
 
 ## 📂 Project structure
